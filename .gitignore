@@ -1,0 +1,25 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+
+# Env / secrets
+.env
+.env.*
+*.pem
+*.key
+application-local.yml
+
+# Logs
+logs/
+*.log
+
+# Docker volumes
+pg_data/

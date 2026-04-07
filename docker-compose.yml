@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: brewbble-db
+    environment:
+      POSTGRES_DB: brewbble
+      POSTGRES_USER: brewbble
+      POSTGRES_PASSWORD: brewbble
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brewbble"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: brewbble-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/brewbble
+      DB_USER: brewbble
+      DB_PASSWORD: brewbble
+      JWT_SECRET: local-docker-secret-must-be-32-chars-min
+      PORT: 8080
+    ports:
+      - "8080:8080"
+
+volumes:
+  pg_data:

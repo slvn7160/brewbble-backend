@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: brewbble-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/brewbble
+    username: brewbble
+    password: brewbble
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-secret-key-must-be-at-least-32-chars-long}
+    expiration-ms: 86400000   # 24 hours
+
+logging:
+  level:
+    com.brewbble: DEBUG
+    org.springframework.security: INFO
