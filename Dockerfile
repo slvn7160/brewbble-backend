@@ -1,5 +1,5 @@
 # ── Stage 1: Build ──────────────────────────────────────
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
+FROM mirror.gcr.io/library/maven:3.9.6-eclipse-temurin-17 AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -q
 
 # ── Stage 2: Runtime ─────────────────────────────────────
-FROM eclipse-temurin:17-jre-alpine
+FROM mirror.gcr.io/library/eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 

@@ -35,6 +35,7 @@ public class AuthService {
                 .token(token)
                 .email(user.getEmail())
                 .name(user.getName())
+                .role(user.getRole().name())
                 .build();
     }
 
@@ -51,6 +52,7 @@ public class AuthService {
                 .token(token)
                 .email(user.getEmail())
                 .name(user.getName())
+                .role(user.getRole().name())
                 .build();
     }
 }
