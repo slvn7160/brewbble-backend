@@ -2,6 +2,7 @@ package com.brewbble.order;
 
 import com.brewbble.menu.MenuItem;
 import com.brewbble.menu.MenuItemRepository;
+import com.brewbble.reward.RewardService;
 import com.brewbble.user.AppUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
+    private final RewardService rewardService;
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request, AppUser user) {
@@ -57,11 +59,23 @@ public class OrderService {
                 ? BigDecimal.ZERO : DELIVERY_FEE;
         BigDecimal total = subtotal.add(tax).add(deliveryFee);
 
+        // Apply reward redemption before saving the order
+        BigDecimal rewardDiscount = BigDecimal.ZERO;
+        if (request.isRedeemPoints()) {
+            // Deduct points first — discount only applied if user had enough points
+            BigDecimal tentativeDiscount = rewardService.redeemPoints(user, null);
+            if (tentativeDiscount.compareTo(BigDecimal.ZERO) > 0) {
+                rewardDiscount = tentativeDiscount.min(total); // never discount more than total
+                total = total.subtract(rewardDiscount).max(BigDecimal.ZERO);
+            }
+        }
+
         Order order = Order.builder()
                 .user(user)
                 .subtotal(subtotal)
                 .tax(tax)
                 .deliveryFee(deliveryFee)
+                .rewardDiscount(rewardDiscount)
                 .total(total)
                 .notes(request.getNotes())
                 .build();
@@ -69,7 +83,18 @@ public class OrderService {
         lines.forEach(item -> item.setOrder(order));
         order.getItems().addAll(lines);
 
-        return OrderResponse.from(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+
+        // Update the reward transaction with the real order ID now that order is persisted
+        if (rewardDiscount.compareTo(BigDecimal.ZERO) > 0) {
+            rewardService.updateLastRedemptionOrderId(user.getId(), saved.getId());
+        }
+
+        // Earn points based on final total paid (after any discount)
+        int pointsEarned = rewardService.earnPoints(user, saved.getId(), saved.getTotal());
+        saved.setPointsEarned(pointsEarned);
+
+        return OrderResponse.from(saved);
     }
 
     public List<OrderResponse> getMyOrders(Long userId) {

@@ -36,6 +36,10 @@ public class AppUser implements UserDetails {
     @Builder.Default
     private Role role = Role.CUSTOMER;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private int rewardPoints = 0;
+
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private Instant createdAt = Instant.now();

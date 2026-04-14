@@ -15,6 +15,8 @@ public class PlaceOrderRequest {
 
     private String notes;
 
+    private boolean redeemPoints;
+
     @Data
     public static class OrderLineRequest {
         @NotNull

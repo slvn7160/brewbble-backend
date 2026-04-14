@@ -16,7 +16,9 @@ public class OrderResponse {
     private BigDecimal subtotal;
     private BigDecimal tax;
     private BigDecimal deliveryFee;
+    private BigDecimal rewardDiscount;
     private BigDecimal total;
+    private int pointsEarned;
     private String notes;
     private Instant createdAt;
     private List<ItemLine> items;
@@ -46,7 +48,9 @@ public class OrderResponse {
                 .subtotal(order.getSubtotal())
                 .tax(order.getTax())
                 .deliveryFee(order.getDeliveryFee())
+                .rewardDiscount(order.getRewardDiscount())
                 .total(order.getTotal())
+                .pointsEarned(order.getPointsEarned())
                 .notes(order.getNotes())
                 .createdAt(order.getCreatedAt())
                 .items(lines)

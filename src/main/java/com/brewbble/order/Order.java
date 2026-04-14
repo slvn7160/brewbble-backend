@@ -43,6 +43,13 @@ public class Order {
     @Column(nullable = false)
     private BigDecimal total;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private BigDecimal rewardDiscount = BigDecimal.ZERO;
+
+    @Transient
+    private int pointsEarned;
+
     private String notes;
 
     @Column(nullable = false, updatable = false)
