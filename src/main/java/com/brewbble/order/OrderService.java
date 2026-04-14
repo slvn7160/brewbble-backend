@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -120,6 +122,15 @@ public class OrderService {
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAll().stream().map(OrderResponse::from).toList();
     }
+
+    public TodayRevenue getTodayRevenue() {
+        Instant startOfDay = LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
+        BigDecimal revenue = orderRepository.sumRevenueAfter(startOfDay);
+        long count = orderRepository.countOrdersAfter(startOfDay);
+        return new TodayRevenue(LocalDate.now(ZoneOffset.UTC).toString(), revenue, count);
+    }
+
+    public record TodayRevenue(String date, BigDecimal revenue, long orderCount) {}
 
     @Transactional
     public OrderResponse updateStatus(Long orderId, OrderStatus newStatus) {

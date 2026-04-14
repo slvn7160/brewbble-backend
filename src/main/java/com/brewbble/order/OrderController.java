@@ -33,13 +33,19 @@ public class OrderController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public List<OrderResponse> allOrders() {
         return orderService.getAllOrders();
     }
 
+    @GetMapping("/revenue/today")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    public ResponseEntity<OrderService.TodayRevenue> todayRevenue() {
+        return ResponseEntity.ok(orderService.getTodayRevenue());
+    }
+
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<OrderResponse> updateStatus(
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
