@@ -28,10 +28,23 @@ public class OrderService {
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request, AppUser user) {
+        return executeOrder(request.getItems(), request.getNotes(), request.isRedeemPoints(), user, false);
+    }
+
+    /** Called by employees for in-store orders. customer may be null for guest purchases. */
+    @Transactional
+    public OrderResponse placeInstoreOrder(List<PlaceOrderRequest.OrderLineRequest> items,
+                                           String notes, boolean redeemPoints, AppUser customer) {
+        return executeOrder(items, notes, redeemPoints, customer, true);
+    }
+
+    private OrderResponse executeOrder(List<PlaceOrderRequest.OrderLineRequest> items,
+                                       String notes, boolean redeemPoints,
+                                       AppUser targetUser, boolean inStore) {
         List<OrderItem> lines = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
-        for (PlaceOrderRequest.OrderLineRequest line : request.getItems()) {
+        for (PlaceOrderRequest.OrderLineRequest line : items) {
             MenuItem menuItem = menuItemRepository.findById(line.getMenuItemId())
                     .orElseThrow(() -> new IllegalArgumentException("Menu item not found: " + line.getMenuItemId()));
 
@@ -55,29 +68,29 @@ public class OrderService {
         }
 
         BigDecimal tax = subtotal.multiply(TAX_RATE).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal deliveryFee = subtotal.compareTo(FREE_DELIVERY_THRESHOLD) >= 0
+        // In-store orders have no delivery fee
+        BigDecimal deliveryFee = inStore || subtotal.compareTo(FREE_DELIVERY_THRESHOLD) >= 0
                 ? BigDecimal.ZERO : DELIVERY_FEE;
         BigDecimal total = subtotal.add(tax).add(deliveryFee);
 
-        // Apply reward redemption before saving the order
+        // Apply reward redemption (only if a customer account is linked)
         BigDecimal rewardDiscount = BigDecimal.ZERO;
-        if (request.isRedeemPoints()) {
-            // Deduct points first — discount only applied if user had enough points
-            BigDecimal tentativeDiscount = rewardService.redeemPoints(user, null);
+        if (redeemPoints && targetUser != null) {
+            BigDecimal tentativeDiscount = rewardService.redeemPoints(targetUser, null);
             if (tentativeDiscount.compareTo(BigDecimal.ZERO) > 0) {
-                rewardDiscount = tentativeDiscount.min(total); // never discount more than total
+                rewardDiscount = tentativeDiscount.min(total);
                 total = total.subtract(rewardDiscount).max(BigDecimal.ZERO);
             }
         }
 
         Order order = Order.builder()
-                .user(user)
+                .user(targetUser)
                 .subtotal(subtotal)
                 .tax(tax)
                 .deliveryFee(deliveryFee)
                 .rewardDiscount(rewardDiscount)
                 .total(total)
-                .notes(request.getNotes())
+                .notes(notes)
                 .build();
 
         lines.forEach(item -> item.setOrder(order));
@@ -85,13 +98,15 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
 
-        // Update the reward transaction with the real order ID now that order is persisted
         if (rewardDiscount.compareTo(BigDecimal.ZERO) > 0) {
-            rewardService.updateLastRedemptionOrderId(user.getId(), saved.getId());
+            rewardService.updateLastRedemptionOrderId(targetUser.getId(), saved.getId());
         }
 
-        // Earn points based on final total paid (after any discount)
-        int pointsEarned = rewardService.earnPoints(user, saved.getId(), saved.getTotal());
+        // Earn points for the linked customer (online or in-store)
+        int pointsEarned = 0;
+        if (targetUser != null) {
+            pointsEarned = rewardService.earnPoints(targetUser, saved.getId(), saved.getTotal());
+        }
         saved.setPointsEarned(pointsEarned);
 
         return OrderResponse.from(saved);
