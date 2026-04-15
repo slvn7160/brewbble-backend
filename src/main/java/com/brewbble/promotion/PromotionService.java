@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -42,8 +43,8 @@ public class PromotionService {
         promo.setValue(req.getValue());
         promo.setActive(req.isActive());
         promo.setMinOrderAmount(req.getMinOrderAmount());
-        promo.setValidFrom(req.getValidFrom());
-        promo.setValidUntil(req.getValidUntil());
+        promo.setValidFrom(req.getValidFrom()  != null ? req.getValidFrom().atStartOfDay(ZoneOffset.UTC).toInstant()  : null);
+        promo.setValidUntil(req.getValidUntil() != null ? req.getValidUntil().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant() : null);
         promo.setUpdatedAt(Instant.now());
         return promoRepository.save(promo);
     }

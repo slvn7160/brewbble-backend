@@ -6,7 +6,8 @@ import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 @Data
 public class PromotionRequest {
@@ -26,8 +27,12 @@ public class PromotionRequest {
     private boolean active = true;
 
     private BigDecimal minOrderAmount;
-    private Instant validFrom;
-    private Instant validUntil;
+
+    /** Accept date-only strings e.g. "2026-04-15" — treated as start of day UTC. */
+    private LocalDate validFrom;
+
+    /** Accept date-only strings e.g. "2026-08-31" — treated as end of day UTC. */
+    private LocalDate validUntil;
 
     public Promotion toEntity() {
         return Promotion.builder()
@@ -37,8 +42,8 @@ public class PromotionRequest {
                 .value(value)
                 .active(active)
                 .minOrderAmount(minOrderAmount)
-                .validFrom(validFrom)
-                .validUntil(validUntil)
+                .validFrom(validFrom  != null ? validFrom.atStartOfDay(ZoneOffset.UTC).toInstant()  : null)
+                .validUntil(validUntil != null ? validUntil.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant() : null)
                 .build();
     }
 }
