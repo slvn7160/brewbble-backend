@@ -24,7 +24,7 @@ app:
 
 logging:
   level:
-    com.brewbble: INFO
+    com.brewbble: DEBUG
     org.springframework.security: WARN
     org.springframework.web: WARN
     org.hibernate.SQL: WARN
