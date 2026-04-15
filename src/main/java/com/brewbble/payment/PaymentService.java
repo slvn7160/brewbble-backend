@@ -143,8 +143,9 @@ public class PaymentService {
 
     public boolean verifySignature(String rawBody, String signature, String webhookUrl) {
         try {
+            // Parameter order: (requestBody, signatureHeader, signatureKey, notificationUrl)
             return WebhooksHelper.verifySignature(
-                    rawBody, squareConfig.getWebhookSignatureKey(), webhookUrl, signature);
+                    rawBody, signature, squareConfig.getWebhookSignatureKey(), webhookUrl);
         } catch (Exception e) {
             log.error("Webhook signature verification error: {}", e.getMessage());
             return false;
