@@ -16,4 +16,23 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.createdAt >= :startOfDay AND o.status != com.brewbble.order.OrderStatus.CANCELLED")
     long countOrdersAfter(@Param("startOfDay") Instant startOfDay);
+
+    @Query("SELECT COALESCE(SUM(o.total), 0) FROM Order o WHERE o.createdAt >= :from AND o.createdAt < :to AND o.status != com.brewbble.order.OrderStatus.CANCELLED")
+    BigDecimal sumRevenueBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.createdAt >= :from AND o.createdAt < :to AND o.status != com.brewbble.order.OrderStatus.CANCELLED")
+    long countOrdersBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query(value = """
+            SELECT DATE(created_at AT TIME ZONE 'UTC') AS date,
+                   COALESCE(SUM(total), 0)             AS revenue,
+                   COUNT(*)                             AS order_count
+            FROM   orders
+            WHERE  created_at >= :from
+              AND  created_at <  :to
+              AND  status     != 'CANCELLED'
+            GROUP BY DATE(created_at AT TIME ZONE 'UTC')
+            ORDER BY date
+            """, nativeQuery = true)
+    List<Object[]> dailyRevenueBetween(@Param("from") Instant from, @Param("to") Instant to);
 }

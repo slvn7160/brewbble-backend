@@ -149,7 +149,30 @@ public class OrderService {
         return new TodayRevenue(LocalDate.now(ZoneOffset.UTC).toString(), revenue, count);
     }
 
+    public RevenueReport getRevenueSummary(LocalDate from, LocalDate toExclusive) {
+        Instant fromInstant = from.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant toInstant   = toExclusive.atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        BigDecimal totalRevenue = orderRepository.sumRevenueBetween(fromInstant, toInstant);
+        long orderCount         = orderRepository.countOrdersBetween(fromInstant, toInstant);
+
+        List<DailyEntry> breakdown = orderRepository.dailyRevenueBetween(fromInstant, toInstant)
+                .stream()
+                .map(row -> new DailyEntry(
+                        row[0].toString(),               // java.sql.Date → "yyyy-MM-dd"
+                        (BigDecimal) row[1],
+                        ((Number) row[2]).longValue()))
+                .toList();
+
+        return new RevenueReport(
+                from.toString(),
+                toExclusive.minusDays(1).toString(),
+                totalRevenue, orderCount, breakdown);
+    }
+
     public record TodayRevenue(String date, BigDecimal revenue, long orderCount) {}
+    public record DailyEntry(String date, BigDecimal revenue, long orderCount) {}
+    public record RevenueReport(String from, String to, BigDecimal totalRevenue, long orderCount, List<DailyEntry> breakdown) {}
 
     @Transactional
     public OrderResponse updateStatus(Long orderId, OrderStatus newStatus) {

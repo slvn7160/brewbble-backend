@@ -10,6 +10,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +48,65 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<OrderService.TodayRevenue> todayRevenue() {
         return ResponseEntity.ok(orderService.getTodayRevenue());
+    }
+
+    /**
+     * Flexible revenue report for admins.
+     *
+     * Usage (pick one):
+     *   ?date=2026-04-15              → single day
+     *   ?month=2026-04                → full month
+     *   ?year=2026                    → full year
+     *   ?year=current                 → current year
+     *   ?year=previous                → previous year
+     *   ?from=2026-04-01&to=2026-04-30 → inclusive date range
+     *   (no params)                   → current month
+     */
+    @GetMapping("/revenue")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrderService.RevenueReport> revenue(
+            @RequestParam(required = false) String date,
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) String year,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+
+        LocalDate fromDate;
+        LocalDate toExclusive; // end is always exclusive internally
+
+        if (date != null) {
+            fromDate    = LocalDate.parse(date);
+            toExclusive = fromDate.plusDays(1);
+
+        } else if (month != null) {
+            YearMonth ym = YearMonth.parse(month);
+            fromDate    = ym.atDay(1);
+            toExclusive = ym.plusMonths(1).atDay(1);
+
+        } else if (year != null) {
+            int y = switch (year) {
+                case "current"  -> LocalDate.now().getYear();
+                case "previous" -> LocalDate.now().getYear() - 1;
+                default         -> Integer.parseInt(year);
+            };
+            fromDate    = LocalDate.of(y, 1, 1);
+            toExclusive = LocalDate.of(y + 1, 1, 1);
+
+        } else if (from != null && to != null) {
+            fromDate    = LocalDate.parse(from);
+            toExclusive = LocalDate.parse(to).plusDays(1); // to is inclusive
+            if (fromDate.isAfter(toExclusive)) {
+                throw new IllegalArgumentException("'from' date must be before 'to' date");
+            }
+
+        } else {
+            // default: current month
+            YearMonth current = YearMonth.now();
+            fromDate    = current.atDay(1);
+            toExclusive = current.plusMonths(1).atDay(1);
+        }
+
+        return ResponseEntity.ok(orderService.getRevenueSummary(fromDate, toExclusive));
     }
 
     @PatchMapping("/{id}/status")
