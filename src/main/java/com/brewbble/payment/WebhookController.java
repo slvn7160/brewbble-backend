@@ -8,6 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 /**
  * Receives Square webhook events.
  * No JWT auth — authenticated via Square's HMAC-SHA256 signature instead.
@@ -24,9 +27,12 @@ public class WebhookController {
 
     @PostMapping(value = "/webhook", consumes = "application/json")
     public ResponseEntity<Void> webhook(
-            @RequestBody String rawBody,
             @RequestHeader(value = "x-square-hmacsha256-signature", required = false) String signature,
-            HttpServletRequest request) {
+            HttpServletRequest request) throws IOException {
+
+        // Read raw bytes directly — avoids Spring charset conversion altering the body
+        byte[] bodyBytes = request.getInputStream().readAllBytes();
+        String rawBody = new String(bodyBytes, StandardCharsets.UTF_8);
 
         log.info("Square webhook received — size={}b from={}", rawBody.length(), request.getRemoteAddr());
 
