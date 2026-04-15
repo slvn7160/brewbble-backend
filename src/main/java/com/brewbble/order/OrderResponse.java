@@ -16,6 +16,8 @@ public class OrderResponse {
     private BigDecimal subtotal;
     private BigDecimal tax;
     private BigDecimal deliveryFee;
+    private BigDecimal promoDiscount;
+    private String promoCode;
     private BigDecimal rewardDiscount;
     private BigDecimal total;
     private int pointsEarned;
@@ -48,6 +50,8 @@ public class OrderResponse {
                 .subtotal(order.getSubtotal())
                 .tax(order.getTax())
                 .deliveryFee(order.getDeliveryFee())
+                .promoDiscount(order.getPromoDiscount())
+                .promoCode(order.getPromotion() != null ? order.getPromotion().getCode() : null)
                 .rewardDiscount(order.getRewardDiscount())
                 .total(order.getTotal())
                 .pointsEarned(order.getPointsEarned())

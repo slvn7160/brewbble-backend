@@ -43,7 +43,7 @@ public class InstoreController {
                             "No account found for " + req.getCustomerEmail() + ". Register the customer first."));
         }
         OrderResponse response = orderService.placeInstoreOrder(
-                req.getItems(), req.getNotes(), req.isRedeemPoints(), customer);
+                req.getItems(), req.getNotes(), req.isRedeemPoints(), customer, req.getPromoCode());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -73,6 +73,7 @@ public class InstoreController {
     @Data
     public static class InstoreOrderRequest {
         private String customerEmail;   // optional — omit for guest
+        private String promoCode;       // optional — promo to apply
         private boolean redeemPoints;
 
         @NotEmpty

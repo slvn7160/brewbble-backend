@@ -1,5 +1,6 @@
 package com.brewbble.order;
 
+import com.brewbble.promotion.Promotion;
 import com.brewbble.user.AppUser;
 import jakarta.persistence.*;
 import lombok.*;
@@ -45,7 +46,15 @@ public class Order {
 
     @Column(nullable = false)
     @Builder.Default
+    private BigDecimal promoDiscount = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    @Builder.Default
     private BigDecimal rewardDiscount = BigDecimal.ZERO;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "promotion_id")
+    private Promotion promotion;
 
     @Transient
     private int pointsEarned;

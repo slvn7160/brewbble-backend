@@ -2,6 +2,8 @@ package com.brewbble.order;
 
 import com.brewbble.menu.MenuItem;
 import com.brewbble.menu.MenuItemRepository;
+import com.brewbble.promotion.Promotion;
+import com.brewbble.promotion.PromotionService;
 import com.brewbble.reward.RewardService;
 import com.brewbble.user.AppUser;
 import lombok.RequiredArgsConstructor;
@@ -27,22 +29,24 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
     private final RewardService rewardService;
+    private final PromotionService promotionService;
 
     @Transactional
     public OrderResponse placeOrder(PlaceOrderRequest request, AppUser user) {
-        return executeOrder(request.getItems(), request.getNotes(), request.isRedeemPoints(), user, false);
+        return executeOrder(request.getItems(), request.getNotes(), request.isRedeemPoints(), user, false, null);
     }
 
     /** Called by employees for in-store orders. customer may be null for guest purchases. */
     @Transactional
     public OrderResponse placeInstoreOrder(List<PlaceOrderRequest.OrderLineRequest> items,
-                                           String notes, boolean redeemPoints, AppUser customer) {
-        return executeOrder(items, notes, redeemPoints, customer, true);
+                                           String notes, boolean redeemPoints,
+                                           AppUser customer, String promoCode) {
+        return executeOrder(items, notes, redeemPoints, customer, true, promoCode);
     }
 
     private OrderResponse executeOrder(List<PlaceOrderRequest.OrderLineRequest> items,
                                        String notes, boolean redeemPoints,
-                                       AppUser targetUser, boolean inStore) {
+                                       AppUser targetUser, boolean inStore, String promoCode) {
         List<OrderItem> lines = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
@@ -69,11 +73,20 @@ public class OrderService {
             subtotal = subtotal.add(lineSubtotal);
         }
 
-        BigDecimal tax = subtotal.multiply(TAX_RATE).setScale(2, RoundingMode.HALF_UP);
+        // Apply promo discount to subtotal — tax is calculated on the discounted amount
+        BigDecimal promoDiscount = BigDecimal.ZERO;
+        Promotion appliedPromo = null;
+        if (promoCode != null && !promoCode.isBlank()) {
+            PromotionService.PromoResult result = promotionService.applyPromo(promoCode, subtotal);
+            promoDiscount = result.discount();
+            appliedPromo = result.promotion();
+        }
+        BigDecimal taxableAmount = subtotal.subtract(promoDiscount);
+        BigDecimal tax = taxableAmount.multiply(TAX_RATE).setScale(2, RoundingMode.HALF_UP);
         // In-store orders have no delivery fee
         BigDecimal deliveryFee = inStore || subtotal.compareTo(FREE_DELIVERY_THRESHOLD) >= 0
                 ? BigDecimal.ZERO : DELIVERY_FEE;
-        BigDecimal total = subtotal.add(tax).add(deliveryFee);
+        BigDecimal total = taxableAmount.add(tax).add(deliveryFee);
 
         // Apply reward redemption (only if a customer account is linked)
         BigDecimal rewardDiscount = BigDecimal.ZERO;
@@ -90,6 +103,8 @@ public class OrderService {
                 .subtotal(subtotal)
                 .tax(tax)
                 .deliveryFee(deliveryFee)
+                .promoDiscount(promoDiscount)
+                .promotion(appliedPromo)
                 .rewardDiscount(rewardDiscount)
                 .total(total)
                 .notes(notes)
