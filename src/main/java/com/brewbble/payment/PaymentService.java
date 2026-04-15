@@ -16,7 +16,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.UUID;
 
 @Slf4j
@@ -144,12 +148,14 @@ public class PaymentService {
     public boolean verifySignature(String rawBody, String signature, String webhookUrl) {
         try {
             String key = squareConfig.getWebhookSignatureKey();
-            log.debug("Webhook verify — url='{}' bodyLen={} sigLen={} keyLen={} bodyStart='{}' sigStart='{}'",
-                    webhookUrl, rawBody.length(),
-                    signature != null ? signature.length() : 0,
-                    key != null ? key.length() : 0,
-                    rawBody.length() > 30 ? rawBody.substring(0, 30) : rawBody,
-                    signature != null && signature.length() > 8 ? signature.substring(0, 8) : signature);
+            // Compute our own HMAC to compare directly
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            String payload = webhookUrl + rawBody;
+            String computed = Base64.getEncoder().encodeToString(
+                    mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
+            log.debug("Webhook verify — keyLen={} computed='{}' received='{}'",
+                    key.length(), computed, signature);
             // Parameter order: (requestBody, signatureHeader, signatureKey, notificationUrl)
             return WebhooksHelper.verifySignature(rawBody, signature, key, webhookUrl);
         } catch (Exception e) {
