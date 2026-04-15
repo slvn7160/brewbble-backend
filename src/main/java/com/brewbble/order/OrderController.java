@@ -1,5 +1,6 @@
 package com.brewbble.order;
 
+import com.brewbble.common.PagedResponse;
 import com.brewbble.user.AppUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,8 +35,11 @@ public class OrderController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
-    public List<OrderResponse> allOrders() {
-        return orderService.getAllOrders();
+    public PagedResponse<OrderResponse> allOrders(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size) {
+        size = Math.min(size, 100); // cap at 100 per page
+        return orderService.getAllOrders(page, size);
     }
 
     @GetMapping("/revenue/today")

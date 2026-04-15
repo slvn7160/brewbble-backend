@@ -1,5 +1,6 @@
 package com.brewbble.order;
 
+import com.brewbble.common.PagedResponse;
 import com.brewbble.menu.MenuItem;
 import com.brewbble.menu.MenuItemRepository;
 import com.brewbble.promotion.Promotion;
@@ -7,6 +8,8 @@ import com.brewbble.promotion.PromotionService;
 import com.brewbble.reward.RewardService;
 import com.brewbble.user.AppUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,8 +137,9 @@ public class OrderService {
                 .stream().map(OrderResponse::from).toList();
     }
 
-    public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll().stream().map(OrderResponse::from).toList();
+    public PagedResponse<OrderResponse> getAllOrders(int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return PagedResponse.from(orderRepository.findAll(pageable).map(OrderResponse::from));
     }
 
     public TodayRevenue getTodayRevenue() {
