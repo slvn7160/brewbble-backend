@@ -32,6 +32,12 @@ app:
     secret: ${JWT_SECRET:local-dev-secret-key-must-be-at-least-32-chars-long}
     expiration-ms: 86400000   # 24 hours
 
+square:
+  access-token: ${SQUARE_ACCESS_TOKEN:sandbox-access-token}
+  location-id: ${SQUARE_LOCATION_ID:sandbox-location-id}
+  environment: ${SQUARE_ENVIRONMENT:SANDBOX}
+  webhook-signature-key: ${SQUARE_WEBHOOK_SIGNATURE_KEY:}
+
 logging:
   level:
     com.brewbble: DEBUG

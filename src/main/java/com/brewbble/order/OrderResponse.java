@@ -13,6 +13,7 @@ public class OrderResponse {
 
     private Long id;
     private String status;
+    private String paymentStatus;
     private BigDecimal subtotal;
     private BigDecimal tax;
     private BigDecimal deliveryFee;
@@ -47,6 +48,7 @@ public class OrderResponse {
         return OrderResponse.builder()
                 .id(order.getId())
                 .status(order.getStatus().name())
+                .paymentStatus(order.getPaymentStatus().name())
                 .subtotal(order.getSubtotal())
                 .tax(order.getTax())
                 .deliveryFee(order.getDeliveryFee())

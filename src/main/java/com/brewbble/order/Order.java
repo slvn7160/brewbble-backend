@@ -1,5 +1,6 @@
 package com.brewbble.order;
 
+import com.brewbble.payment.PaymentStatus;
 import com.brewbble.promotion.Promotion;
 import com.brewbble.user.AppUser;
 import jakarta.persistence.*;
@@ -30,6 +31,13 @@ public class Order {
     @Column(nullable = false)
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
+
+    private String squarePaymentId;
 
     @Column(nullable = false)
     private BigDecimal subtotal;

@@ -13,6 +13,9 @@ spring:
 server:
   port: ${PORT:8080}
 
+square:
+  environment: PRODUCTION
+
 app:
   jwt:
     secret: ${JWT_SECRET}

@@ -57,6 +57,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- Cloud SQL connector (for Cloud Run → Cloud SQL via Unix socket) -->
+    <dependency>
+      <groupId>com.google.cloud.sql</groupId>
+      <artifactId>postgres-socket-factory</artifactId>
+      <version>1.21.0</version>
+    </dependency>
+
     <!-- Flyway -->
     <dependency>
       <groupId>org.flywaydb</groupId>
@@ -80,6 +87,13 @@
       <artifactId>jjwt-jackson</artifactId>
       <version>${jjwt.version}</version>
       <scope>runtime</scope>
+    </dependency>
+
+    <!-- Square Payments SDK -->
+    <dependency>
+      <groupId>com.squareup</groupId>
+      <artifactId>square</artifactId>
+      <version>44.2.0.20250521</version>
     </dependency>
 
     <!-- Lombok -->
