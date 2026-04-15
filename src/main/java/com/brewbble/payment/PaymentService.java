@@ -148,6 +148,13 @@ public class PaymentService {
     public boolean verifySignature(String rawBody, String signature, String webhookUrl) {
         try {
             String key = squareConfig.getWebhookSignatureKey();
+            // Log key as hex to detect hidden/non-printable characters
+            StringBuilder hexKey = new StringBuilder();
+            for (byte b : key.getBytes(StandardCharsets.UTF_8)) {
+                hexKey.append(String.format("%02x", b));
+            }
+            log.debug("Webhook key hex: {}", hexKey);
+
             // Compute our own HMAC to compare directly
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
