@@ -22,3 +22,7 @@ logging:
   level:
     com.brewbble: INFO
     org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
