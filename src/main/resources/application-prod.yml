@@ -15,6 +15,7 @@ server:
 
 square:
   environment: PRODUCTION
+  webhook-url: ${SQUARE_WEBHOOK_URL}
 
 app:
   jwt:

@@ -17,6 +17,7 @@ public class SquareConfig {
     private String locationId;
     private String environment = "SANDBOX";
     private String webhookSignatureKey;
+    private String webhookUrl;
 
     @Bean
     public SquareClient squareClient() {

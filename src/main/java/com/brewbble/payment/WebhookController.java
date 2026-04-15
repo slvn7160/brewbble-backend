@@ -1,5 +1,6 @@
 package com.brewbble.payment;
 
+import com.brewbble.config.SquareConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class WebhookController {
 
     private final PaymentService paymentService;
+    private final SquareConfig   squareConfig;
 
     @PostMapping(value = "/webhook", consumes = "application/json")
     public ResponseEntity<Void> webhook(
@@ -26,10 +28,20 @@ public class WebhookController {
             @RequestHeader(value = "x-square-hmacsha256-signature", required = false) String signature,
             HttpServletRequest request) {
 
-        String webhookUrl = request.getRequestURL().toString();
+        log.info("Square webhook received — size={}b from={}", rawBody.length(), request.getRemoteAddr());
 
-        if (signature == null || !paymentService.verifySignature(rawBody, signature, webhookUrl)) {
-            log.warn("Rejected Square webhook — invalid signature from {}", request.getRemoteAddr());
+        if (signature == null) {
+            log.warn("Rejected Square webhook — missing signature header from {}", request.getRemoteAddr());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // Use configured URL — request.getRequestURL() returns internal URL behind Cloud Run proxy
+        String webhookUrl = squareConfig.getWebhookUrl();
+        boolean valid = paymentService.verifySignature(rawBody, signature, webhookUrl);
+        log.debug("Webhook signature check: url={} valid={}", webhookUrl, valid);
+
+        if (!valid) {
+            log.warn("Rejected Square webhook — signature mismatch (url={}) from={}", webhookUrl, request.getRemoteAddr());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 

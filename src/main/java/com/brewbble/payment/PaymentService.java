@@ -168,7 +168,7 @@ public class PaymentService {
             switch (eventType) {
                 case "payment.completed" -> handlePaymentCompleted(root, eventId, rawBody);
                 case "payment.failed"    -> handlePaymentFailed(root, eventId, rawBody);
-                case "refund.created"    -> handleRefundCreated(root, eventId, rawBody);
+                case "refund.updated"    -> handleRefundCreated(root, eventId, rawBody);
                 default -> {
                     log.debug("Unhandled Square event type: {}", eventType);
                     saveEvent(eventId, null, null, eventType, null, "IGNORED", rawBody);
@@ -229,7 +229,7 @@ public class PaymentService {
             orderRepository.save(order);
             log.info("Webhook: order {} marked REFUNDED", order.getId());
         });
-        saveEvent(eventId, null, squarePaymentId, "refund.created", amount, "REFUNDED", rawBody);
+        saveEvent(eventId, null, squarePaymentId, "refund.updated", amount, "REFUNDED", rawBody);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
