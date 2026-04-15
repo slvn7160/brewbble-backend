@@ -16,11 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.UUID;
 
 @Slf4j
@@ -148,21 +144,6 @@ public class PaymentService {
     public boolean verifySignature(String rawBody, String signature, String webhookUrl) {
         try {
             String key = squareConfig.getWebhookSignatureKey();
-            // Log key as hex to detect hidden/non-printable characters
-            StringBuilder hexKey = new StringBuilder();
-            for (byte b : key.getBytes(StandardCharsets.UTF_8)) {
-                hexKey.append(String.format("%02x", b));
-            }
-            log.debug("Webhook key hex: {}", hexKey);
-
-            // Compute our own HMAC to compare directly
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            String payload = webhookUrl + rawBody;
-            String computed = Base64.getEncoder().encodeToString(
-                    mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
-            log.debug("Webhook verify — keyLen={} computed='{}' received='{}'",
-                    key.length(), computed, signature);
             // Parameter order: (requestBody, signatureHeader, signatureKey, notificationUrl)
             return WebhooksHelper.verifySignature(rawBody, signature, key, webhookUrl);
         } catch (Exception e) {

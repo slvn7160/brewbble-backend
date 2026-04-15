@@ -36,19 +36,20 @@ public class WebhookController {
 
         log.info("Square webhook received — size={}b from={}", rawBody.length(), request.getRemoteAddr());
 
-        if (signature == null) {
-            log.warn("Rejected Square webhook — missing signature header from {}", request.getRemoteAddr());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        // Use configured URL — request.getRequestURL() returns internal URL behind Cloud Run proxy
-        String webhookUrl = squareConfig.getWebhookUrl();
-        boolean valid = paymentService.verifySignature(rawBody, signature, webhookUrl);
-        log.debug("Webhook signature check: url={} valid={}", webhookUrl, valid);
-
-        if (!valid) {
-            log.warn("Rejected Square webhook — signature mismatch (url={}) from={}", webhookUrl, request.getRemoteAddr());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        if (squareConfig.isWebhookVerifySignature()) {
+            if (signature == null) {
+                log.warn("Rejected Square webhook — missing signature header from {}", request.getRemoteAddr());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            String webhookUrl = squareConfig.getWebhookUrl();
+            boolean valid = paymentService.verifySignature(rawBody, signature, webhookUrl);
+            log.debug("Webhook signature check: url={} valid={}", webhookUrl, valid);
+            if (!valid) {
+                log.warn("Rejected Square webhook — signature mismatch (url={}) from={}", webhookUrl, request.getRemoteAddr());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+        } else {
+            log.warn("Webhook signature verification DISABLED — sandbox mode only");
         }
 
         paymentService.handleWebhookEvent(rawBody);

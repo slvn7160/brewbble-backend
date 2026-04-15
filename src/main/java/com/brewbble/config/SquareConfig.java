@@ -18,6 +18,7 @@ public class SquareConfig {
     private String environment = "SANDBOX";
     private String webhookSignatureKey;
     private String webhookUrl;
+    private boolean webhookVerifySignature = true;
 
     @Bean
     public SquareClient squareClient() {

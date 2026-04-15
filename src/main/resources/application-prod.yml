@@ -16,6 +16,7 @@ server:
 square:
   environment: PRODUCTION
   webhook-url: ${SQUARE_WEBHOOK_URL}
+  webhook-verify-signature: true
 
 app:
   jwt:
@@ -24,7 +25,7 @@ app:
 
 logging:
   level:
-    com.brewbble: DEBUG
+    com.brewbble: INFO
     org.springframework.security: WARN
     org.springframework.web: WARN
     org.hibernate.SQL: WARN
