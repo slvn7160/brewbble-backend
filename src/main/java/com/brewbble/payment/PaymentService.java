@@ -144,10 +144,12 @@ public class PaymentService {
     public boolean verifySignature(String rawBody, String signature, String webhookUrl) {
         try {
             String key = squareConfig.getWebhookSignatureKey();
-            log.debug("Webhook verify — url='{}' bodyLen={} sigLen={} keyLen={}",
+            log.debug("Webhook verify — url='{}' bodyLen={} sigLen={} keyLen={} bodyStart='{}' sigStart='{}'",
                     webhookUrl, rawBody.length(),
                     signature != null ? signature.length() : 0,
-                    key != null ? key.length() : 0);
+                    key != null ? key.length() : 0,
+                    rawBody.length() > 30 ? rawBody.substring(0, 30) : rawBody,
+                    signature != null && signature.length() > 8 ? signature.substring(0, 8) : signature);
             // Parameter order: (requestBody, signatureHeader, signatureKey, notificationUrl)
             return WebhooksHelper.verifySignature(rawBody, signature, key, webhookUrl);
         } catch (Exception e) {
