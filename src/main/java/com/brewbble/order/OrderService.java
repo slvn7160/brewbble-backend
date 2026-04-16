@@ -3,6 +3,7 @@ package com.brewbble.order;
 import com.brewbble.common.PagedResponse;
 import com.brewbble.menu.MenuItem;
 import com.brewbble.menu.MenuItemRepository;
+import com.brewbble.payment.PaymentStatus;
 import com.brewbble.promotion.Promotion;
 import com.brewbble.promotion.PromotionService;
 import com.brewbble.reward.RewardService;
@@ -122,13 +123,7 @@ public class OrderService {
             rewardService.updateLastRedemptionOrderId(targetUser.getId(), saved.getId());
         }
 
-        // Earn points for the linked customer (online or in-store)
-        int pointsEarned = 0;
-        if (targetUser != null) {
-            pointsEarned = rewardService.earnPoints(targetUser, saved.getId(), saved.getTotal());
-        }
-        saved.setPointsEarned(pointsEarned);
-
+        // Points are earned only when the order is delivered — not at placement
         return OrderResponse.from(saved);
     }
 
@@ -180,6 +175,15 @@ public class OrderService {
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
         order.setStatus(newStatus);
         order.setUpdatedAt(Instant.now());
-        return OrderResponse.from(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+
+        // Award points only when order reaches DELIVERED
+        if (newStatus == OrderStatus.DELIVERED && saved.getUser() != null
+                && saved.getPaymentStatus() == PaymentStatus.PAID) {
+            int points = rewardService.earnPoints(saved.getUser(), saved.getId(), saved.getTotal());
+            saved.setPointsEarned(points);
+        }
+
+        return OrderResponse.from(saved);
     }
 }
