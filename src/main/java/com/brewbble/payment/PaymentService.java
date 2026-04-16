@@ -67,6 +67,9 @@ public class PaymentService {
             order.setStatus(OrderStatus.PREPARING);
             orderRepository.save(order);
 
+            saveEvent(UUID.randomUUID().toString(), orderId, squarePaymentId,
+                    "payment.completed", order.getTotal(), "PAID", null);
+
             log.info("Payment PAID for order {} — Square ID: {}", orderId, squarePaymentId);
             return new PaymentResult(squarePaymentId, PaymentStatus.PAID, order.getTotal());
 
@@ -74,11 +77,15 @@ public class PaymentService {
             order.setPaymentStatus(PaymentStatus.FAILED);
             orderRepository.save(order);
             String detail = extractError(e);
+            saveEvent(UUID.randomUUID().toString(), orderId, null,
+                    "payment.failed", order.getTotal(), "FAILED", null);
             log.error("Payment FAILED for order {}: {}", orderId, detail);
             throw new IllegalArgumentException("Payment failed: " + detail);
         } catch (Exception e) {
             order.setPaymentStatus(PaymentStatus.FAILED);
             orderRepository.save(order);
+            saveEvent(UUID.randomUUID().toString(), orderId, null,
+                    "payment.failed", order.getTotal(), "FAILED", null);
             log.error("Payment error for order {}: {}", orderId, e.getMessage(), e);
             throw new IllegalArgumentException("Payment processing error. Please try again.");
         }
@@ -156,8 +163,15 @@ public class PaymentService {
     public void handleWebhookEvent(String rawBody) {
         try {
             JsonNode root      = objectMapper.readTree(rawBody);
-            String   eventId   = root.path("event_id").asText();
+            String rawEventId = root.path("event_id").asText(null);
+            String   eventId   = (rawEventId != null && !rawEventId.isBlank())
+                    ? rawEventId
+                    : "webhook-" + UUID.randomUUID();   // fallback so NOT NULL constraint is never hit
             String   eventType = root.path("type").asText();
+
+            if (rawEventId == null || rawEventId.isBlank()) {
+                log.warn("Square webhook missing event_id — assigned fallback id {}", eventId);
+            }
 
             if (paymentEventRepository.existsBySquareEventId(eventId)) {
                 log.info("Webhook event {} already processed — skipping", eventId);

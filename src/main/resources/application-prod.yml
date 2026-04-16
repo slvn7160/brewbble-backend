@@ -14,7 +14,7 @@ server:
   port: ${PORT:8080}
 
 square:
-  environment: PRODUCTION
+  environment: ${SQUARE_ENVIRONMENT:PRODUCTION}
   webhook-url: ${SQUARE_WEBHOOK_URL}
   webhook-verify-signature: true
 
