@@ -1,10 +1,13 @@
 package com.brewbble.order;
 
+import com.brewbble.customization.OrderItemCustomization;
 import com.brewbble.menu.MenuItem;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "order_items")
@@ -37,4 +40,8 @@ public class OrderItem {
 
     @Column(nullable = false)
     private BigDecimal subtotal;
+
+    @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<OrderItemCustomization> customizations = new ArrayList<>();
 }

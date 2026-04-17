@@ -1,5 +1,6 @@
 package com.brewbble.order;
 
+import com.brewbble.customization.CustomizationOptionResponse;
 import lombok.Builder;
 import lombok.Data;
 
@@ -34,6 +35,7 @@ public class OrderResponse {
         private BigDecimal unitPrice;
         private int quantity;
         private BigDecimal subtotal;
+        private List<CustomizationOptionResponse> customizations;
     }
 
     public static OrderResponse from(Order order) {
@@ -43,6 +45,10 @@ public class OrderResponse {
                 .unitPrice(i.getUnitPrice())
                 .quantity(i.getQuantity())
                 .subtotal(i.getSubtotal())
+                .customizations(i.getCustomizations().stream()
+                        .map(c -> new CustomizationOptionResponse(
+                                c.getOptionId(), c.getName(), c.getType().name(), c.getPriceDelta()))
+                        .toList())
                 .build()).toList();
 
         return OrderResponse.builder()

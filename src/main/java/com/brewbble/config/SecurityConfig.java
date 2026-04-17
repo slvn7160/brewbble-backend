@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api/v1/payments/webhook").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/menu", "/api/v1/menu/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/customizations").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider)

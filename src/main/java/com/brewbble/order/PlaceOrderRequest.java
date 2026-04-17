@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -24,5 +25,8 @@ public class PlaceOrderRequest {
 
         @Positive
         private int quantity;
+
+        // Optional — omit or send empty list for no customizations
+        private List<Long> customizationIds = new ArrayList<>();
     }
 }

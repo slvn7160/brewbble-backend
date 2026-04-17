@@ -1,6 +1,10 @@
 package com.brewbble.order;
 
 import com.brewbble.common.PagedResponse;
+import com.brewbble.customization.CustomizationOption;
+import com.brewbble.customization.CustomizationOptionRepository;
+import com.brewbble.customization.CustomizationType;
+import com.brewbble.customization.OrderItemCustomization;
 import com.brewbble.menu.MenuItem;
 import com.brewbble.menu.MenuItemRepository;
 import com.brewbble.payment.PaymentStatus;
@@ -21,6 +25,8 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +38,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
+    private final CustomizationOptionRepository customizationOptionRepository;
     private final RewardService rewardService;
     private final PromotionService promotionService;
 
@@ -62,18 +69,38 @@ public class OrderService {
                 throw new IllegalArgumentException("Item is not available: " + menuItem.getName());
             }
 
-            BigDecimal lineSubtotal = menuItem.getPrice()
+            List<CustomizationOption> chosenOptions = resolveCustomizations(line.getCustomizationIds());
+            BigDecimal priceDelta = chosenOptions.stream()
+                    .map(CustomizationOption::getPriceDelta)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal effectiveUnitPrice = menuItem.getPrice().add(priceDelta)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            BigDecimal lineSubtotal = effectiveUnitPrice
                     .multiply(BigDecimal.valueOf(line.getQuantity()))
                     .setScale(2, RoundingMode.HALF_UP);
 
-            lines.add(OrderItem.builder()
+            OrderItem orderItem = OrderItem.builder()
                     .menuItem(menuItem)
                     .name(menuItem.getName())
-                    .unitPrice(menuItem.getPrice())
+                    .unitPrice(effectiveUnitPrice)
                     .quantity(line.getQuantity())
                     .subtotal(lineSubtotal)
-                    .build());
+                    .build();
 
+            // Snapshot chosen customizations onto the order item
+            List<OrderItemCustomization> customizations = chosenOptions.stream()
+                    .map(opt -> OrderItemCustomization.builder()
+                            .orderItem(orderItem)
+                            .optionId(opt.getId())
+                            .name(opt.getName())
+                            .type(opt.getType())
+                            .priceDelta(opt.getPriceDelta())
+                            .build())
+                    .collect(Collectors.toList());
+            orderItem.getCustomizations().addAll(customizations);
+
+            lines.add(orderItem);
             subtotal = subtotal.add(lineSubtotal);
         }
 
@@ -125,6 +152,33 @@ public class OrderService {
 
         // Points are earned only when the order is delivered — not at placement
         return OrderResponse.from(saved);
+    }
+
+    private List<CustomizationOption> resolveCustomizations(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+
+        List<CustomizationOption> options = customizationOptionRepository.findAllById(ids);
+        if (options.size() != ids.size()) {
+            throw new IllegalArgumentException("One or more customization options not found");
+        }
+
+        for (CustomizationOption opt : options) {
+            if (!opt.isAvailable()) {
+                throw new IllegalArgumentException("Customization option is not available: " + opt.getName());
+            }
+        }
+
+        // At most 1 selection per non-TOPPING type
+        Map<CustomizationType, Long> countByType = options.stream()
+                .collect(Collectors.groupingBy(CustomizationOption::getType, Collectors.counting()));
+        countByType.forEach((type, count) -> {
+            if (type != CustomizationType.TOPPING && count > 1) {
+                throw new IllegalArgumentException(
+                        "Only one " + type.name().toLowerCase().replace('_', ' ') + " selection is allowed per item");
+            }
+        });
+
+        return options;
     }
 
     public List<OrderResponse> getMyOrders(Long userId) {
