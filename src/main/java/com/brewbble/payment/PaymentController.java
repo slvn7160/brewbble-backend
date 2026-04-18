@@ -37,9 +37,9 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getStatus(orderId, user));
     }
 
-    /** Admin-only full refund. */
+    /** Full refund — accessible by ADMIN or EMPLOYEE. */
     @PostMapping("/{orderId}/refund")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<PaymentService.PaymentResult> refund(@PathVariable Long orderId) {
         return ResponseEntity.ok(paymentService.refund(orderId));
     }
