@@ -100,6 +100,17 @@ public class PaymentService {
         if (order.getPaymentStatus() != PaymentStatus.PAID) {
             throw new IllegalArgumentException("Order is not in a paid state — cannot refund");
         }
+
+        // Cash orders have no Square payment — mark refunded locally
+        if ("CASH".equals(order.getPaymentMethod())) {
+            order.setPaymentStatus(PaymentStatus.REFUNDED);
+            order.setStatus(OrderStatus.CANCELLED);
+            orderRepository.save(order);
+            log.info("Cash refund recorded for order {}", orderId);
+            return new PaymentResult(null, PaymentStatus.REFUNDED, order.getTotal());
+        }
+
+        // Square online / terminal orders — call Square refund API
         if (order.getSquarePaymentId() == null) {
             throw new IllegalArgumentException("No Square payment ID found for this order");
         }
