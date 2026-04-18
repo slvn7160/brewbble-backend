@@ -258,13 +258,22 @@ public class PaymentService {
 
         Long orderId = parseOrderId(referenceId);
 
-        // Look up by terminalCheckoutId for reliability; fall back to referenceId parse
+        // Extract the Square payment ID from payment_ids[0] so refunds work
+        JsonNode paymentIdsNode = checkoutNode.path("payment_ids");
+        String squarePaymentId = (paymentIdsNode.isArray() && paymentIdsNode.size() > 0)
+                ? paymentIdsNode.get(0).asText(null)
+                : null;
+
         orderRepository.findByTerminalCheckoutId(terminalCheckoutId).ifPresent(order -> {
             if (order.getPaymentStatus() != PaymentStatus.PAID) {
+                if (squarePaymentId != null) {
+                    order.setSquarePaymentId(squarePaymentId);
+                }
                 order.setPaymentStatus(PaymentStatus.PAID);
                 order.setStatus(OrderStatus.PREPARING);
                 orderRepository.save(order);
-                log.info("Webhook: terminal checkout COMPLETED for order {}", order.getId());
+                log.info("Webhook: terminal checkout COMPLETED for order {} — squarePaymentId: {}",
+                        order.getId(), squarePaymentId);
             }
         });
 

@@ -116,10 +116,16 @@ public class TerminalService {
             String squareStatus = fetched.getStatus().orElse("PENDING");
 
             if ("COMPLETED".equals(squareStatus)) {
+                // Capture the Square payment ID so refunds work via the standard refund flow
+                fetched.getPaymentIds()
+                        .filter(ids -> !ids.isEmpty())
+                        .map(ids -> ids.get(0))
+                        .ifPresent(order::setSquarePaymentId);
                 order.setPaymentStatus(PaymentStatus.PAID);
                 order.setStatus(OrderStatus.PREPARING);
                 orderRepository.save(order);
-                log.info("Terminal payment COMPLETED for order {}", orderId);
+                log.info("Terminal payment COMPLETED for order {} — squarePaymentId: {}",
+                        orderId, order.getSquarePaymentId());
             } else if ("CANCELED".equals(squareStatus)) {
                 order.setPaymentStatus(PaymentStatus.FAILED);
                 orderRepository.save(order);
