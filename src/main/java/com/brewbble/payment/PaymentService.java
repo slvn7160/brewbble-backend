@@ -181,9 +181,11 @@ public class PaymentService {
             log.info("Processing Square webhook: {} ({})", eventType, eventId);
 
             switch (eventType) {
-                case "payment.completed" -> handlePaymentCompleted(root, eventId, rawBody);
-                case "payment.failed"    -> handlePaymentFailed(root, eventId, rawBody);
-                case "refund.updated"    -> handleRefundCreated(root, eventId, rawBody);
+                case "payment.completed"             -> handlePaymentCompleted(root, eventId, rawBody);
+                case "payment.failed"                -> handlePaymentFailed(root, eventId, rawBody);
+                case "refund.updated"                -> handleRefundCreated(root, eventId, rawBody);
+                case "terminal.checkout.completed"   -> handleTerminalCompleted(root, eventId, rawBody);
+                case "terminal.checkout.updated"     -> handleTerminalUpdated(root, eventId, rawBody);
                 default -> {
                     log.debug("Unhandled Square event type: {}", eventType);
                     saveEvent(eventId, null, null, eventType, null, "IGNORED", rawBody);
@@ -245,6 +247,48 @@ public class PaymentService {
             log.info("Webhook: order {} marked REFUNDED", order.getId());
         });
         saveEvent(eventId, null, squarePaymentId, "refund.updated", amount, "REFUNDED", rawBody);
+    }
+
+    private void handleTerminalCompleted(JsonNode root, String eventId, String rawBody) {
+        JsonNode   checkoutNode      = root.path("data").path("object").path("checkout");
+        String     terminalCheckoutId = checkoutNode.path("id").asText();
+        String     referenceId        = checkoutNode.path("reference_id").asText();
+        long       amountCents        = checkoutNode.path("amount_money").path("amount").asLong();
+        BigDecimal amount             = BigDecimal.valueOf(amountCents).movePointLeft(2);
+
+        Long orderId = parseOrderId(referenceId);
+
+        // Look up by terminalCheckoutId for reliability; fall back to referenceId parse
+        orderRepository.findByTerminalCheckoutId(terminalCheckoutId).ifPresent(order -> {
+            if (order.getPaymentStatus() != PaymentStatus.PAID) {
+                order.setPaymentStatus(PaymentStatus.PAID);
+                order.setStatus(OrderStatus.PREPARING);
+                orderRepository.save(order);
+                log.info("Webhook: terminal checkout COMPLETED for order {}", order.getId());
+            }
+        });
+
+        saveEvent(eventId, orderId, terminalCheckoutId, "terminal.checkout.completed", amount, "PAID", rawBody);
+    }
+
+    private void handleTerminalUpdated(JsonNode root, String eventId, String rawBody) {
+        JsonNode checkoutNode       = root.path("data").path("object").path("checkout");
+        String   terminalCheckoutId = checkoutNode.path("id").asText();
+        String   referenceId        = checkoutNode.path("reference_id").asText();
+        String   checkoutStatus     = checkoutNode.path("status").asText();
+
+        Long orderId = parseOrderId(referenceId);
+
+        if ("CANCELED".equals(checkoutStatus)) {
+            orderRepository.findByTerminalCheckoutId(terminalCheckoutId).ifPresent(order -> {
+                order.setPaymentStatus(PaymentStatus.FAILED);
+                orderRepository.save(order);
+                log.warn("Webhook: terminal checkout CANCELED for order {}", order.getId());
+            });
+        }
+
+        saveEvent(eventId, orderId, terminalCheckoutId, "terminal.checkout.updated", null,
+                checkoutStatus, rawBody);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

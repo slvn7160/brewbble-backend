@@ -20,6 +20,10 @@ public class SquareConfig {
     private String webhookUrl;
     private boolean webhookVerifySignature = true;
 
+    // Sandbox Terminal device IDs — see Square Developer Dashboard
+    private String terminalDeviceId;
+    private String terminalDeviceIdCancelTest;  // simulates buyer cancel in sandbox
+
     @Bean
     public SquareClient squareClient() {
         Environment env = "PRODUCTION".equalsIgnoreCase(environment)

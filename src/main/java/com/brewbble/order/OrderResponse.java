@@ -15,6 +15,8 @@ public class OrderResponse {
     private Long id;
     private String status;
     private String paymentStatus;
+    private String paymentMethod;           // SQUARE_ONLINE | SQUARE_TERMINAL | CASH | null
+    private String terminalCheckoutId;      // non-null only while a terminal charge is in flight
     private BigDecimal subtotal;
     private BigDecimal tax;
     private BigDecimal deliveryFee;
@@ -55,6 +57,8 @@ public class OrderResponse {
                 .id(order.getId())
                 .status(order.getStatus().name())
                 .paymentStatus(order.getPaymentStatus().name())
+                .paymentMethod(order.getPaymentMethod())
+                .terminalCheckoutId(order.getTerminalCheckoutId())
                 .subtotal(order.getSubtotal())
                 .tax(order.getTax())
                 .deliveryFee(order.getDeliveryFee())

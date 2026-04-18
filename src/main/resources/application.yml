@@ -39,6 +39,8 @@ square:
   webhook-signature-key: ${SQUARE_WEBHOOK_SIGNATURE_KEY:}
   webhook-url: ${SQUARE_WEBHOOK_URL:http://localhost:8080/api/v1/payments/webhook}
   webhook-verify-signature: false   # disabled in sandbox — Square test events use fake signatures
+  terminal-device-id: ${SQUARE_TERMINAL_DEVICE_ID:9fa747a2-25ff-48ee-b078-04381f7c828f}
+  terminal-device-id-cancel-test: ${SQUARE_TERMINAL_DEVICE_ID_CANCEL:841100b9-ee60-4537-9bcf-e30b2ba5e215}
 
 logging:
   level:

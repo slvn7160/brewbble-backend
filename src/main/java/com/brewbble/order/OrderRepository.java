@@ -11,6 +11,7 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
     java.util.Optional<Order> findBySquarePaymentId(String squarePaymentId);
+    java.util.Optional<Order> findByTerminalCheckoutId(String terminalCheckoutId);
 
     @Query("SELECT COALESCE(SUM(o.total), 0) FROM Order o WHERE o.createdAt >= :startOfDay AND o.status != com.brewbble.order.OrderStatus.CANCELLED")
     BigDecimal sumRevenueAfter(@Param("startOfDay") Instant startOfDay);

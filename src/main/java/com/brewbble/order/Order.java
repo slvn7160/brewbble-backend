@@ -39,6 +39,12 @@ public class Order {
 
     private String squarePaymentId;
 
+    @Column(name = "payment_method", length = 20)
+    private String paymentMethod;           // SQUARE_ONLINE | SQUARE_TERMINAL | CASH
+
+    @Column(name = "terminal_checkout_id", length = 100)
+    private String terminalCheckoutId;
+
     @Column(nullable = false)
     private BigDecimal subtotal;
 

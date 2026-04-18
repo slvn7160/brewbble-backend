@@ -17,6 +17,7 @@ square:
   environment: ${SQUARE_ENVIRONMENT:PRODUCTION}
   webhook-url: ${SQUARE_WEBHOOK_URL}
   webhook-verify-signature: true
+  terminal-device-id: ${SQUARE_TERMINAL_DEVICE_ID}
 
 app:
   jwt:
