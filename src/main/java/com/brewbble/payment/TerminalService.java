@@ -7,6 +7,9 @@ import com.brewbble.order.OrderStatus;
 import com.brewbble.user.AppUser;
 import com.squareup.square.SquareClient;
 import com.squareup.square.core.SquareApiException;
+import com.squareup.square.terminal.types.CancelCheckoutsRequest;
+import com.squareup.square.terminal.types.CreateTerminalCheckoutRequest;
+import com.squareup.square.terminal.types.GetCheckoutsRequest;
 import com.squareup.square.types.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -104,7 +107,7 @@ public class TerminalService {
 
         try {
             GetTerminalCheckoutResponse response = squareClient.terminal().checkouts()
-                    .get(GetTerminalCheckoutRequest.builder()
+                    .get(GetCheckoutsRequest.builder()
                             .checkoutId(order.getTerminalCheckoutId())
                             .build());
 
@@ -150,7 +153,7 @@ public class TerminalService {
 
         try {
             squareClient.terminal().checkouts()
-                    .cancel(CancelTerminalCheckoutRequest.builder()
+                    .cancel(CancelCheckoutsRequest.builder()
                             .checkoutId(order.getTerminalCheckoutId())
                             .build());
 
