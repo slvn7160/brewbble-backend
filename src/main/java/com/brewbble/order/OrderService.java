@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.LinkedHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -186,9 +187,12 @@ public class OrderService {
                 .stream().map(OrderResponse::from).toList();
     }
 
-    public PagedResponse<OrderResponse> getAllOrders(int page, int size) {
+    public PagedResponse<OrderResponse> getAllOrders(int page, int size, List<OrderStatus> statuses) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        return PagedResponse.from(orderRepository.findAll(pageable).map(OrderResponse::from));
+        if (statuses == null || statuses.isEmpty()) {
+            return PagedResponse.from(orderRepository.findAll(pageable).map(OrderResponse::from));
+        }
+        return PagedResponse.from(orderRepository.findByStatusIn(statuses, pageable).map(OrderResponse::from));
     }
 
     public TodayRevenue getTodayRevenue() {
@@ -219,9 +223,40 @@ public class OrderService {
                 totalRevenue, orderCount, breakdown);
     }
 
+    public ShiftSummary getShiftSummary(LocalDate date) {
+        Instant from = date.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant to   = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        BigDecimal totalRevenue = orderRepository.sumRevenueBetween(from, to);
+        long totalOrders        = orderRepository.countOrdersBetween(from, to);
+
+        Map<String, Long> byStatus = new java.util.LinkedHashMap<>();
+        for (Object[] row : orderRepository.countByStatusBetween(from, to)) {
+            byStatus.put(row[0].toString(), ((Number) row[1]).longValue());
+        }
+
+        Map<String, ShiftSummary.PaymentMethodEntry> byPaymentMethod = new java.util.LinkedHashMap<>();
+        for (Object[] row : orderRepository.summaryByPaymentMethodBetween(from, to)) {
+            byPaymentMethod.put(row[0].toString(),
+                    new ShiftSummary.PaymentMethodEntry(
+                            ((Number) row[1]).longValue(),
+                            (BigDecimal) row[2]));
+        }
+
+        return new ShiftSummary(date.toString(), totalOrders, totalRevenue, byStatus, byPaymentMethod);
+    }
+
     public record TodayRevenue(String date, BigDecimal revenue, long orderCount) {}
     public record DailyEntry(String date, BigDecimal revenue, long orderCount) {}
     public record RevenueReport(String from, String to, BigDecimal totalRevenue, long orderCount, List<DailyEntry> breakdown) {}
+    public record ShiftSummary(
+            String date,
+            long totalOrders,
+            BigDecimal totalRevenue,
+            Map<String, Long> byStatus,
+            Map<String, PaymentMethodEntry> byPaymentMethod) {
+        public record PaymentMethodEntry(long count, BigDecimal revenue) {}
+    }
 
     @Transactional
     public OrderResponse updateStatus(Long orderId, OrderStatus newStatus) {

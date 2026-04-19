@@ -35,13 +35,34 @@ public class OrderController {
         return orderService.getMyOrders(user.getId());
     }
 
+    /**
+     * List orders for kitchen display / admin.
+     * Optional ?status=PENDING,PREPARING filter — comma-separated, case-insensitive.
+     */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public PagedResponse<OrderResponse> allOrders(
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "20") int size) {
-        size = Math.min(size, 100); // cap at 100 per page
-        return orderService.getAllOrders(page, size);
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false)    List<String> status) {
+        size = Math.min(size, 100);
+        List<OrderStatus> statuses = (status == null) ? List.of() :
+                status.stream().map(s -> OrderStatus.valueOf(s.toUpperCase())).toList();
+        return orderService.getAllOrders(page, size, statuses);
+    }
+
+    /**
+     * Shift summary — order count, revenue, breakdown by status and payment method.
+     * ?date=2026-04-18  or  ?date=today  (default: today)
+     */
+    @GetMapping("/summary")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    public ResponseEntity<OrderService.ShiftSummary> shiftSummary(
+            @RequestParam(required = false) String date) {
+        LocalDate day = (date == null || "today".equalsIgnoreCase(date))
+                ? LocalDate.now(java.time.ZoneOffset.UTC)
+                : LocalDate.parse(date);
+        return ResponseEntity.ok(orderService.getShiftSummary(day));
     }
 
     @GetMapping("/revenue/today")

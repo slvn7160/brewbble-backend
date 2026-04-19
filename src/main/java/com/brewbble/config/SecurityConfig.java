@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/payments/webhook").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/menu", "/api/v1/menu/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/customizations").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/settings/store-hours").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider)

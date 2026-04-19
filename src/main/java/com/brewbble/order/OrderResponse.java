@@ -13,6 +13,7 @@ import java.util.List;
 public class OrderResponse {
 
     private Long id;
+    private String customerName;            // null for guest orders
     private String status;
     private String paymentStatus;
     private String paymentMethod;           // SQUARE_ONLINE | SQUARE_TERMINAL | CASH | null
@@ -55,6 +56,7 @@ public class OrderResponse {
 
         return OrderResponse.builder()
                 .id(order.getId())
+                .customerName(order.getUser() != null ? order.getUser().getName() : null)
                 .status(order.getStatus().name())
                 .paymentStatus(order.getPaymentStatus().name())
                 .paymentMethod(order.getPaymentMethod())
